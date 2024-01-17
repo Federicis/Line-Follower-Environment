@@ -6,13 +6,41 @@ using UnityEngine;
 public class SensorsPositioning : MonoBehaviour
 {
     public GameObject sensor;
-    public GameObject[] sensors;  // Reference to the smaller square prefab
+    private List<GameObject> sensors;  // Reference to the smaller square prefab
     public float squareLength;   // Distance of smaller squares from the center
+    public GameObject object1, object2;
 
     void Start()
     {
+        sensors = new();
         GetSquareLength();
         ArrangeSmallerSquares();
+    }
+
+    private void Update()
+    {
+        object1 = sensors[3];
+        object2 = GameObject.FindGameObjectWithTag("Line");
+
+        if (object1.GetComponent<BoxCollider2D>() && object2.GetComponent<CompositeCollider2D>())
+        {
+            // Get the bounds of each game object
+            Bounds bounds1 = object1.GetComponent<BoxCollider2D>().bounds;
+            Bounds bounds2 = object2.GetComponent<CompositeCollider2D>().bounds;
+
+            // Calculate the overlap bounds
+            Bounds overlapBounds = bounds1;
+            overlapBounds.Encapsulate(bounds2.min);
+            overlapBounds.Encapsulate(bounds2.max);
+
+            // Calculate and print the size of the overlap area
+            Vector3 overlapSize = overlapBounds.size;
+            Debug.Log("Overlap Size: " + overlapSize.x * overlapSize.y);
+        }
+        else
+        {
+            Debug.LogError("Both game objects must have colliders for overlap calculation.");
+        }
     }
 
     void ArrangeSmallerSquares()
@@ -34,7 +62,7 @@ public class SensorsPositioning : MonoBehaviour
             GameObject smallerSquare = Instantiate(sensor, new Vector3(x, y, 0f), Quaternion.identity);
             smallerSquare.transform.localScale = Vector3.one / 12f;
             smallerSquare.transform.SetParent(transform);  // Set the center GameObject as the parent
-            sensors.Append(smallerSquare);
+            sensors.Add(smallerSquare);
         }
     }
 
