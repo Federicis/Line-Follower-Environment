@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,39 +8,47 @@ public class SensorsPositioning : MonoBehaviour
 {
     public GameObject sensor;
     private List<GameObject> sensors;  // Reference to the smaller square prefab
+    private List<SensorColliderScript> sensorsScripts;
     public float squareLength;   // Distance of smaller squares from the center
     public GameObject object1, object2;
+    public int output;
+    public int[] rewards = { 1, 5, 10, 10, 5, 1 };
+    public int[] weights = { -50, -20, 0, 0, 20, 50 };
+    public int finalReward;
+    public int positionRelativeToLine;
 
     void Start()
     {
         sensors = new();
+        sensorsScripts = new();
         GetSquareLength();
         ArrangeSmallerSquares();
+        //InvokeRepeating("TimerFunction", 0.2f, 0.5f);
+    }
+
+    // This function will be called every 0.5 seconds
+    void TimerFunction()
+    {
+
     }
 
     private void Update()
     {
-        object1 = sensors[3];
-        object2 = GameObject.FindGameObjectWithTag("Line");
-
-        if (object1.GetComponent<BoxCollider2D>() && object2.GetComponent<CompositeCollider2D>())
+        positionRelativeToLine = 0;
+        finalReward = 0;
+        if (sensorsScripts.Count == 6)
         {
-            // Get the bounds of each game object
-            Bounds bounds1 = object1.GetComponent<BoxCollider2D>().bounds;
-            Bounds bounds2 = object2.GetComponent<CompositeCollider2D>().bounds;
-
-            // Calculate the overlap bounds
-            Bounds overlapBounds = bounds1;
-            overlapBounds.Encapsulate(bounds2.min);
-            overlapBounds.Encapsulate(bounds2.max);
-
-            // Calculate and print the size of the overlap area
-            Vector3 overlapSize = overlapBounds.size;
-            Debug.Log("Overlap Size: " + overlapSize.x * overlapSize.y);
-        }
-        else
-        {
-            Debug.LogError("Both game objects must have colliders for overlap calculation.");
+            for (int i = 0; i < 6; i++)
+            {
+                positionRelativeToLine += weights[i] * (sensorsScripts[i].isOnLine ? 1 : 0);
+                finalReward += rewards[i] * (sensorsScripts[i].isOnLine ? 1 : 0);
+            }
+            if (finalReward == 0)
+            {
+                positionRelativeToLine = -1000;
+            }
+            Debug.Log("Reward: " + finalReward);
+            Debug.Log("Position: " + positionRelativeToLine);
         }
     }
 
@@ -62,7 +71,14 @@ public class SensorsPositioning : MonoBehaviour
             GameObject smallerSquare = Instantiate(sensor, new Vector3(x, y, 0f), Quaternion.identity);
             smallerSquare.transform.localScale = Vector3.one / 12f;
             smallerSquare.transform.SetParent(transform);  // Set the center GameObject as the parent
+            smallerSquare.name = "Sensor " + i; 
             sensors.Add(smallerSquare);
+            SensorColliderScript script = smallerSquare.GetComponent<SensorColliderScript>();
+
+            if (script != null)
+                sensorsScripts.Add(script);
+            else
+                Debug.Log("sensor not found");
         }
     }
 
